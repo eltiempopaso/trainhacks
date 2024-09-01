@@ -21,6 +21,7 @@ const int PRINT_STATUS_TIMEOUT_MS = 30000;
 RF24 radio(9, 10); 
 
 Button buttons[] = { {3, 3, 0}, {4, 4, 0} };
+int numButtons = sizeof(buttons) / sizeof(buttons[0]);
 
 int msForNextStatusPrint = PRINT_STATUS_TIMEOUT_MS;
 char buffer[50];
@@ -78,7 +79,7 @@ void setup()
 
 void loop()
 {
-  for (int nButton = 0; nButton < sizeof(buttons); nButton++)
+  for (int nButton = 0; nButton < numButtons; nButton++)
   {
     int tmpStates[7];
     for (int i =0; i < 7; i++)
@@ -115,7 +116,7 @@ void loop()
   {
     Serial.println("CPU OK. Estat actual:");
 
-    for (int nButton = 0; nButton < sizeof(buttons); nButton++)
+    for (int nButton = 0; nButton < numButtons; nButton++)
     {
       snprintf(buffer, sizeof(buffer)," * Boto local %d, rele remot %d, estat %s.", buttons[nButton].pin, buttons[nButton].remotePin, buttons[nButton].state==HIGH? "TANCAT":"OBERT");
       Serial.println(buffer);
