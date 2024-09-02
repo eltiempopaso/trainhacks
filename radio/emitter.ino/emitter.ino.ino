@@ -5,30 +5,19 @@
 
 #include <TaskScheduler.h>
 #include "torbenmogensen.h"
-
-typedef struct {
-  int pin;
-  boolean state;
-} Command;
+#include "protocol.h"
 
 typedef struct {
   int pin;
   int remotePin;
-  boolean state;
+  int state;
 } Button;
-
-
-//const byte destinationAddress[6] = "00001";     
-//const int SLEEP_MS = 100;
-const int PRINT_STATUS_TIMEOUT_MS = 30000;
 
 RF24 radio(9, 10); 
 RF24Network network(radio);  // Network uses that radio
 
-
-const uint16_t THIS_NODE  = 01;   // Address of our node in Octal format
-const uint16_t OTHER_NODE = 02;  // Address of the other node in Octal format
-
+const uint16_t THIS_NODE  = 00;   // Address of our node in Octal format
+const uint16_t OTHER_NODE = 01;  // Address of the other node in Octal format
 
 Button buttons[] = { {3, 3, 0}, {4, 4, 0} };
 int numButtons = sizeof(buttons) / sizeof(buttons[0]);
@@ -41,13 +30,15 @@ Scheduler runner;
 
 // Task functions
 void printStatus();
-void readAndSendInputs();
+void readInputs();
+void sendPinRequests();
 void nrf24Network();
 
 // Define tasks
-Task taskPrintStatus(PRINT_STATUS_TIMEOUT_MS, TASK_FOREVER, &printStatus); 
-Task taskReadAndSendInputs (100, TASK_FOREVER, &readAndSendInputs); 
-Task taskNrf24Network (10, TASK_FOREVER, &nrf24Network); 
+Task taskPrintStatus(30000, TASK_FOREVER, &printStatus); 
+//Task taskReadPinInputs (50, TASK_FOREVER, &readInputs); 
+Task taskSendPinRequests   (500, TASK_FOREVER, &sendPinRequests); 
+Task taskNrf24Network (11, TASK_FOREVER, &nrf24Network); 
 
 void setup() 
 {
@@ -74,7 +65,8 @@ void setup()
   network.begin(/*node address*/ THIS_NODE);
 
   runner.addTask(taskPrintStatus);
-  runner.addTask(taskReadAndSendInputs);
+  //runner.addTask(taskReadPinInputs);
+  runner.addTask(taskSendPinRequests);
   runner.addTask(taskNrf24Network);
 
   Serial.println("Inicialitzat!");
@@ -97,7 +89,25 @@ void printStatus()
     }
 }
 
-void readAndSendInputs()
+bool receiveMessages()
+{
+  bool initializationRequested = false;
+  InitializationRequest ir;
+
+  while (network.available()) {  // Is there anything ready for us?
+    RF24NetworkHeader header;  // If so, grab it and print it out
+    //payload_t payload;
+    
+    uint16_t size = network.read(header, &ir, sizeof(ir));
+
+    initializationRequested = true; // assuming the only message I can receive is the initialization one
+  }
+
+  return initializationRequested;
+}
+bool thereAreChanges = false;
+
+void readInputs()
 {
   for (int nButton = 0; nButton < numButtons; nButton++)
   {
@@ -111,25 +121,48 @@ void readAndSendInputs()
     #else
     int state = digitalRead(buttons[nButton].pin);
     #endif
-  
+
     if(state != buttons[nButton].state)
     {
-      Command newCommand {buttons[nButton].remotePin, state};   
-      RF24NetworkHeader header(/*to node*/ OTHER_NODE);            
-      bool ok = network.write(header, &newCommand, sizeof(newCommand));
+      snprintf(buffer, sizeof(buffer), "CANVI DETECTAT. Boto %d, rele remot %d. Nou estat: %s", buttons[nButton].pin, buttons[nButton].remotePin, state==HIGH? "TANCAT":"OBERT");
+      Serial.println(buffer);
 
-      if (ok)
-      {
-        snprintf(buffer, sizeof(buffer), "CANVI OK. Boto %d, rele remot %d. Nou estat: %s", buttons[nButton].pin, buttons[nButton].remotePin, state==HIGH? "TANCAT":"OBERT");
-        Serial.println(buffer);
-      }
-      else
-      {
-        snprintf(buffer, sizeof(buffer), "CANVI ERROR. Node remot no respon. Fallo al enviar boto %d, rele remot %d. Nou estat: %s", buttons[nButton].pin, buttons[nButton].remotePin, state==HIGH? "TANCAT":"OBERT");
-        Serial.println(buffer);
-      }
-
+      thereAreChanges = true;
+      
       buttons[nButton].state = state;      
+    }
+  }
+}
+
+void sendPinRequests()
+{
+  readInputs();
+
+  bool neededInitialization = receiveMessages();
+
+  if (thereAreChanges || neededInitialization)
+  {
+    PinRequest requests[numButtons];
+    for (int nButton = 0; nButton < numButtons; nButton++)
+    {
+      requests[nButton] = {(byte)buttons[nButton].remotePin, buttons[nButton].state==0?0:1};
+    }
+    
+    RF24NetworkHeader header(/*to node*/ OTHER_NODE);            
+    bool ok = network.write(header, requests, sizeof(requests));
+
+    if (ok)
+    {
+      snprintf(buffer, sizeof(buffer), "Canvis enviats correctament.");
+      Serial.println(buffer);
+
+      thereAreChanges = false; 
+    }
+    else
+    {
+      // keep thereAreChanges = true to resend message
+      snprintf(buffer, sizeof(buffer), "ERROR Al enviar canvis al node remot. Sembla que no esta operatiu");
+      Serial.println(buffer);
     }
   }
 }
@@ -137,9 +170,4 @@ void readAndSendInputs()
 void nrf24Network()
 {
   network.update();  // Check the network regularly
-/*
-  payload_t payload = { millis(), packets_sent++ };
-  RF24NetworkHeader header(/@to node@/ other_node);
-  bool ok = network.write(header, &payload, sizeof(payload));
-*/
 }
