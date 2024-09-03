@@ -6,7 +6,6 @@
 #include <TaskScheduler.h>
 #include "protocol.h"
 
-
 typedef struct {
   int pinid;
   int currentState;
@@ -31,9 +30,9 @@ void printStatus();
 void receiveMessages();
 void nrf24Network();
 
-Task taskReceiveMessages(100, TASK_FOREVER, &receiveMessages); 
-Task taskPrintStatus (30000, TASK_FOREVER, &printStatus); 
-Task taskNrf24Network (10, TASK_FOREVER, &nrf24Network);
+Task taskReceiveMessages(90, TASK_FOREVER, &receiveMessages); 
+Task taskPrintStatus (5000, TASK_FOREVER, &printStatus); 
+Task taskNrf24Network (100, TASK_FOREVER, &nrf24Network);
 
 int findOutputPosition(int pinId) {
     for (int i = 0; i < numOutputs; i++) {
@@ -67,6 +66,9 @@ void setup()
   runner.addTask(taskReceiveMessages);
   runner.addTask(taskNrf24Network);
 
+  taskPrintStatus.enable();
+  taskReceiveMessages.enable();
+  taskNrf24Network.enable();
   //Serial.println("Antena configurada OK.");
 }
 
@@ -118,17 +120,19 @@ void receiveMessages()
 
       if (position != -1)
       {
-        digitalWrite(aRequest.pin, aRequest.value);
+        //INVERTING BECAUSE OF PULLUPS
+        outputs[position].currentState = aRequest.value==HIGH?LOW:HIGH;
+
+        digitalWrite(aRequest.pin, outputs[position].currentState);
         if (!initialized) // trying to avoid glinch
         {
           pinMode(aRequest.pin, OUTPUT);
-          digitalWrite(aRequest.pin, aRequest.value);
+          digitalWrite(aRequest.pin, outputs[position].currentState);
 
           snprintf(buffer, sizeof(buffer), "Configuro Pin %d com a sortida.", aRequest.pin);
           Serial.println(buffer);
 
         }
-        outputs[position].currentState = aRequest.value;
 
         snprintf(buffer, sizeof(buffer), "Configuro Pin %d. Estat %s.", aRequest.pin, aRequest.value==HIGH? "TANCAT": "OBERT");
         Serial.println(buffer);
