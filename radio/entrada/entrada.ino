@@ -24,6 +24,15 @@ const uint16_t OTHER_NODE = 01;  // Address of the other node in Octal format
 Button buttons[] = { {3, 3, 0}, {4, 4, 0} };
 int numButtons = sizeof(buttons) / sizeof(buttons[0]);
 
+const int ledPin = 5;
+typedef enum {
+  OK,
+  ERROR,
+  NO_REMOTE
+} GeneralStatus;
+
+GeneralStatus generalStatus = OK;
+
 //int msForNextStatusPrint = PRINT_STATUS_TIMEOUT_MS;
 char buffer[50];
 
@@ -35,12 +44,14 @@ void printStatus();
 void readInputs();
 void sendPinRequests();
 void nrf24Network();
+void statusLed();
 
 // Define tasks
-Task taskPrintStatus(10000, TASK_FOREVER, &printStatus); 
+Task taskPrintStatus(5000, TASK_FOREVER, &printStatus); 
 Task taskReadPinInputs (30, TASK_FOREVER, &readInputs); 
 Task taskSendPinRequests   (200, TASK_FOREVER, &sendPinRequests); 
 Task taskNrf24Network (100, TASK_FOREVER, &nrf24Network); 
+Task taskStatusLED (500, TASK_FOREVER, &statusLed); 
 
 void setup() 
 {
@@ -50,6 +61,7 @@ void setup()
   }
 
   pinMode(buttons[0].pin, INPUT);
+  pinMode(ledPin, OUTPUT);
  
   if (!radio.begin()) {
     Serial.println(F("Radio hardware not responding!"));
@@ -70,11 +82,13 @@ void setup()
   runner.addTask(taskReadPinInputs);
   runner.addTask(taskSendPinRequests);
   runner.addTask(taskNrf24Network);
+  runner.addTask(taskStatusLED);
 
   taskPrintStatus.enable();
   taskSendPinRequests.enable();
   taskNrf24Network.enable();
   taskReadPinInputs.enable();
+  taskStatusLED.enable();
 
   Serial.println("Inicialitzat!");
 }
@@ -195,12 +209,16 @@ void sendPinRequests()
       Serial.println(buffer);
 
       thereAreChanges = false; 
+
+      generalStatus = OK;
     }
     else
     {
       // keep thereAreChanges = true to resend message
       snprintf(buffer, sizeof(buffer), "SYNC ERROR. Node ESTACIO no trobat.");
       Serial.println(buffer);
+
+      generalStatus = ERROR;
     }
   }
 }
@@ -209,4 +227,27 @@ void nrf24Network()
 {
   //Serial.println("network update");
   network.update();  // Check the network regularly
+}
+
+void statusLed()
+{
+  static int counter = 0;
+  static int LED_CURRENT = LOW;
+
+  counter = (counter+1)%4;
+
+  if (generalStatus == OK && counter ==0) // move slowly
+  {
+    LED_CURRENT = LED_CURRENT==LOW?HIGH:LOW;
+    digitalWrite(ledPin, LED_CURRENT);    
+
+    Serial.println("OK. TOOGLE");
+  }
+  else if (generalStatus == ERROR)
+  {
+    LED_CURRENT = LED_CURRENT==LOW?HIGH:LOW;
+    digitalWrite(ledPin, LED_CURRENT);    
+
+    Serial.println("ERROR. TOOGLE");
+  }
 }
