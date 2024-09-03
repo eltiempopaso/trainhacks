@@ -6,6 +6,7 @@
 #include <TaskScheduler.h>
 #include "protocol.h"
 
+
 typedef struct {
   int pinid;
   int currentState;
@@ -66,7 +67,7 @@ void setup()
   runner.addTask(taskReceiveMessages);
   runner.addTask(taskNrf24Network);
 
-  Serial.println("Node exterior configurat OK. Adreca 1.");
+  //Serial.println("Antena configurada OK.");
 }
 
 void loop()
@@ -77,7 +78,7 @@ void loop()
 
 void printStatus()
 {
-  snprintf(buffer, sizeof(buffer), "CPU OK. Estat actual: %s", initialized? "INICIALITZAT": "SENSE INICIALITZAR. Enviant peticio...");
+  snprintf(buffer, sizeof(buffer), "Estat actual: %s", initialized? "INICIALITZAT": "SENSE INICIALITZAR");
   Serial.println(buffer);
 
   if (!initialized)
@@ -88,7 +89,7 @@ void printStatus()
 
    // same algorithm if destination received or not (write ok true or false)
 
-    snprintf(buffer, sizeof(buffer), "Peticio per rebre dades inicialitzacio enviada al node entrada.");
+    snprintf(buffer, sizeof(buffer), "Peticio SYNC enviada al node ENTRADA.");
     Serial.println(buffer);
   }
 }
@@ -106,7 +107,7 @@ void receiveMessages()
 
     int nElements = size/sizeof(PinRequest);
 
-    snprintf(buffer, sizeof(buffer), "He rebut un missatge de l'ENTRADA. Tinc %d pins per setejar:", nElements);
+    snprintf(buffer, sizeof(buffer), "Missatge d'ENTRADA rebut. Estat %d reles:", nElements);
     Serial.println(buffer);
 
     for (int i = 0; i<nElements; i++)
@@ -123,18 +124,18 @@ void receiveMessages()
           pinMode(aRequest.pin, OUTPUT);
           digitalWrite(aRequest.pin, aRequest.value);
 
-          snprintf(buffer, sizeof(buffer), "Inicialitzo pin %d com a sortida:", aRequest.pin);
+          snprintf(buffer, sizeof(buffer), "Configuro Pin %d com a sortida.", aRequest.pin);
           Serial.println(buffer);
 
         }
         outputs[position].currentState = aRequest.value;
 
-        snprintf(buffer, sizeof(buffer), "Rebuda peticio. Pin %d estat %s.", aRequest.pin, aRequest.value==HIGH? "TANCAT": "OBERT");
+        snprintf(buffer, sizeof(buffer), "Configuro Pin %d. Estat %s.", aRequest.pin, aRequest.value==HIGH? "TANCAT": "OBERT");
         Serial.println(buffer);
       }
       else
       {
-        snprintf(buffer, sizeof(buffer), "ERROR. Rebuda peticio. Pin %d (INCORRECTE) estat %s.", aRequest.pin, aRequest.value==HIGH? "TANCAT": "OBERT");
+        snprintf(buffer, sizeof(buffer), "ERROR. Pin %d (INCORRECTE) estat %s.", aRequest.pin, aRequest.value==HIGH? "TANCAT": "OBERT");
         Serial.println(buffer);
       }
     }

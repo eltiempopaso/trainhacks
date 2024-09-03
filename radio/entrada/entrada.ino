@@ -69,6 +69,10 @@ void setup()
   runner.addTask(taskSendPinRequests);
   runner.addTask(taskNrf24Network);
 
+  taskPrintStatus.enable();
+  taskSendPinRequests.enable();
+  taskNrf24Network.enable();
+
   Serial.println("Inicialitzat!");
 }
 
@@ -91,6 +95,8 @@ void printStatus()
 
 bool receiveMessages()
 {
+   //Serial.println("Rebent missatges");
+
   bool initializationRequested = false;
   InitializationRequest ir;
 
@@ -101,6 +107,9 @@ bool receiveMessages()
     uint16_t size = network.read(header, &ir, sizeof(ir));
 
     initializationRequested = true; // assuming the only message I can receive is the initialization one
+
+    snprintf(buffer, sizeof(buffer), "Peticio SYNC rebuda.");
+    Serial.println(buffer);
   }
 
   return initializationRequested;
@@ -109,6 +118,8 @@ bool thereAreChanges = false;
 
 void readInputs()
 {
+  //Serial.println("llegint pins");
+
   for (int nButton = 0; nButton < numButtons; nButton++)
   {
     #ifdef USE_TORBEN_MOGENSEN
@@ -153,7 +164,7 @@ void sendPinRequests()
 
     if (ok)
     {
-      snprintf(buffer, sizeof(buffer), "Canvis enviats correctament.");
+      snprintf(buffer, sizeof(buffer), "SYNC OK");
       Serial.println(buffer);
 
       thereAreChanges = false; 
@@ -161,7 +172,7 @@ void sendPinRequests()
     else
     {
       // keep thereAreChanges = true to resend message
-      snprintf(buffer, sizeof(buffer), "ERROR Al enviar canvis al node remot. Sembla que no esta operatiu");
+      snprintf(buffer, sizeof(buffer), "SYNC ERROR. Node ESTACIO no trobat.");
       Serial.println(buffer);
     }
   }
@@ -169,5 +180,6 @@ void sendPinRequests()
 
 void nrf24Network()
 {
+  //Serial.println("network update");
   network.update();  // Check the network regularly
 }
