@@ -11,6 +11,8 @@ typedef struct {
   int pin;
   int remotePin;
   int state;
+  int lastReads[5];
+  int last;
 } Button;
 
 RF24 radio(9, 10); 
@@ -35,10 +37,10 @@ void sendPinRequests();
 void nrf24Network();
 
 // Define tasks
-Task taskPrintStatus(30000, TASK_FOREVER, &printStatus); 
-//Task taskReadPinInputs (50, TASK_FOREVER, &readInputs); 
-Task taskSendPinRequests   (500, TASK_FOREVER, &sendPinRequests); 
-Task taskNrf24Network (11, TASK_FOREVER, &nrf24Network); 
+Task taskPrintStatus(10000, TASK_FOREVER, &printStatus); 
+Task taskReadPinInputs (30, TASK_FOREVER, &readInputs); 
+Task taskSendPinRequests   (200, TASK_FOREVER, &sendPinRequests); 
+Task taskNrf24Network (100, TASK_FOREVER, &nrf24Network); 
 
 void setup() 
 {
@@ -65,13 +67,14 @@ void setup()
   network.begin(/*node address*/ THIS_NODE);
 
   runner.addTask(taskPrintStatus);
-  //runner.addTask(taskReadPinInputs);
+  runner.addTask(taskReadPinInputs);
   runner.addTask(taskSendPinRequests);
   runner.addTask(taskNrf24Network);
 
   taskPrintStatus.enable();
   taskSendPinRequests.enable();
   taskNrf24Network.enable();
+  taskReadPinInputs.enable();
 
   Serial.println("Inicialitzat!");
 }
@@ -114,7 +117,7 @@ bool receiveMessages()
 
   return initializationRequested;
 }
-bool thereAreChanges = false;
+bool thereAreChanges = true;
 
 void readInputs()
 {
@@ -133,23 +136,47 @@ void readInputs()
     int state = digitalRead(buttons[nButton].pin);
     #endif
 
-    if(state != buttons[nButton].state)
-    {
-      snprintf(buffer, sizeof(buffer), "CANVI DETECTAT. Boto %d, rele remot %d. Nou estat: %s", buttons[nButton].pin, buttons[nButton].remotePin, state==HIGH? "TANCAT":"OBERT");
-      Serial.println(buffer);
-
-      thereAreChanges = true;
-      
-      buttons[nButton].state = state;      
-    }
+    int & index = buttons[nButton].last;
+    index = (index+1)%5;
+    buttons[nButton].lastReads[index] = state;
   }
 }
 
 void sendPinRequests()
 {
-  readInputs();
-
   bool neededInitialization = receiveMessages();
+
+  for (int nButton = 0; nButton < numButtons; nButton++)
+  {
+    int sum = 0;
+    for (int i = 0; i < 5; i++)
+    {
+      sum+=buttons[nButton].lastReads[i];
+    }
+    
+    if (sum == 0 && buttons[nButton].state == HIGH)
+    {    
+      thereAreChanges = true; 
+      buttons[nButton].state = LOW;
+
+      snprintf(buffer, sizeof(buffer), "CANVI DETECTAT. Pin %d, remot %d. Estat: %s", buttons[nButton].pin, buttons[nButton].remotePin, buttons[nButton].state==HIGH? "TANCAT":"OBERT");
+      Serial.println(buffer);
+
+    }
+    else if (sum == 5 && buttons[nButton].state == LOW)
+    {
+      thereAreChanges = true;
+      buttons[nButton].state = HIGH;
+
+      snprintf(buffer, sizeof(buffer), "CANVI DETECTAT. Pin %d, remot %d. Estat: %s", buttons[nButton].pin, buttons[nButton].remotePin, buttons[nButton].state==HIGH? "TANCAT":"OBERT");
+      Serial.println(buffer);
+
+    }
+    else
+    {
+      // sense canvis
+    }
+  }
 
   if (thereAreChanges || neededInitialization)
   {
