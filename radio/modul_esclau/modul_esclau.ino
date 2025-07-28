@@ -13,10 +13,25 @@
 #define NRELES_EXPANDERS 3
 PCA9535 relesExpander[NRELES_EXPANDERS];
 
+#if 0
+Aillament aillaments[] {
+    Aillament(&relesExpander[0], {0,0}),
+    Aillament(&relesExpander[0], {1,1}),
+}
+#endif
+
+Desvio desvios[] = {
+    Desvio(&relesExpander[0], {13,0}, {14,1}),
+    Desvio(&relesExpander[0], {15,2}, {16,3}),
+    Desvio(&relesExpander[0], {17,4}, {18,5})
+};
+
+#if 0
 typedef struct {
   int pinid;
   int currentState;
 } OutputMechanism;
+#endif
 
 RF24 radio(9, 10);
 RF24Network network(radio);  // Network uses that radio
@@ -24,9 +39,12 @@ RF24Network network(radio);  // Network uses that radio
 const uint16_t THIS_NODE = NODE_ID_ESTACIO;
 const uint16_t ENTRADA_NODE = NODE_ID_ENTRADA;
 
+#if 0
 OutputMechanism outputs[] = { {3, LOW}, {4, LOW}};
 int numOutputs = sizeof(outputs) / sizeof(outputs[0]);
+#endif
 bool initialized = false;
+
 
 char buffer[50];
 
@@ -41,6 +59,7 @@ Task taskReceiveMessages(90, TASK_FOREVER, &receiveMessages);
 Task taskPrintStatus (5000, TASK_FOREVER, &printStatus); 
 Task taskNrf24Network (100, TASK_FOREVER, &nrf24Network);
 
+#if 0
 int findOutputPosition(int pinId) {
     for (int i = 0; i < numOutputs; i++) {
         if (outputs[i].pinid == pinId) {
@@ -49,6 +68,7 @@ int findOutputPosition(int pinId) {
     }
     return -1;  // Return -1 if pinId is not found
 }
+#endif
 
 void setup()  {
   Serial.begin(9600);
@@ -125,6 +145,8 @@ void receiveMessages() {
 
     for (int i = 0; i<nElements; i++) {
       const PinRequest & aRequest = ((PinRequest *)receivingBuffer)[i];
+
+      // for desvios... call signalReceived
 #if 0
       int position = findOutputPosition (aRequest.pin);
 
