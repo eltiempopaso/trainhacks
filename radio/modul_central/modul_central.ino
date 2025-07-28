@@ -108,6 +108,8 @@ void setup()  {
     // some boards need this because of native USB capability
   }
 
+  Wire.begin();
+
   for (int i = 0; i < NUM_EXPANDERS; i++) {
   if (!pcf[i].begin(i2cAddrs[i], &Wire)) {
     Serial.println("Couldn't find PCF8574");
