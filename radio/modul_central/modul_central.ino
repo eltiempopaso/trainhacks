@@ -4,10 +4,11 @@
 #include <RF24Network.h>
 
 #include <TaskScheduler.h>
-#include "torbenmogensen.h"
+#include <Adafruit_PCF8574.h>
 #include "protocol.h"
 
 typedef struct {
+  int nexpander;
   int pin;
   int remotePin;
   int state;
@@ -21,10 +22,56 @@ RF24Network network(radio);  // Network uses that radio
 const uint16_t THIS_NODE  = NODE_ID_MODUL_CENTRAL;
 const uint16_t OTHER_NODE = NODE_ID_MODUL_ESCLAU;
 
-#if 0
-Button buttons[] = { {3, 3, 0}, {4, 4, 0} };
+#define NUM_EXPANDERS 5
+Adafruit_PCF8574 pcf[NUM_EXPANDERS];
+uint8_t i2cAddrs[NUM_EXPANDERS] = { 0x20, 0x21, 0x22, 0x23, 0x24 };
+
+Button buttons[] = { 
+                      // AILLAMENT VIES
+                     {0, 0, 0, 0},  
+                     {0, 1, 1, 0},
+                     {0, 2, 2, 0},
+                     {0, 3, 3, 0},
+                     {0, 4, 4, 0},
+                     {0, 5, 5, 0},
+                     {0, 6, 6, 0},
+                     {0, 7, 7, 0},
+                     {1, 0, 8, 0},
+                     {1, 1, 9, 0},
+                     {1, 2, 10, 0},
+                     {1, 3, 11, 0},
+                     {1, 4, 12, 0},
+
+                      // DESVIOS
+                     {2, 0, 13, 0}, 
+                     {2, 1, 14, 0},
+
+                     {2, 2, 15, 0},
+                     {2, 3, 16, 0},
+
+                     {2, 4, 17, 0},
+                     {2, 5, 18, 0},
+
+                     {2, 6, 19, 0},
+                     {2, 7, 20, 0},
+
+                     {3, 0, 21, 0},
+                     {3, 1, 22, 0},
+
+                     {3, 2, 23, 0},
+                     {3, 3, 24, 0},
+
+                     {3, 4, 25, 0},
+                     {3, 5, 26, 0},
+                      // INVERSOR GENERAL
+                     {4, 0, 27, 0},
+                      // INVERSOR LOCAL
+                     {4, 1, 28, 0},
+                      // SELECCIONADOR TRANSFORMADOR
+                     {4, 2, 29, 0},
+                    };
+
 int numButtons = sizeof(buttons) / sizeof(buttons[0]);
-#endif
 
 const int ledPin = 5;
 typedef enum {
@@ -61,21 +108,25 @@ void setup()  {
     // some boards need this because of native USB capability
   }
 
-  pinMode(buttons[0].pin, INPUT);
-  pinMode(ledPin, OUTPUT);
- 
+  for (int i = 0; i < NUM_EXPANDERS; i++) {
+  if (!pcf[i].begin(i2cAddrs[i], &Wire)) {
+    Serial.println("Couldn't find PCF8574");
+    while (1);
+  }
+
+  for (uint8_t p=0; p<8; p++) {
+    pcf[i].pinMode(p, INPUT_PULLUP);
+  }
+  }
+  
+
   if (!radio.begin()) {
     Serial.println(F("Radio hardware not responding!"));
     while (1) {
       // hold in infinite loop
     }
   }
-  /*
-  radio.begin();                 
-  radio.openWritingPipe(destinationAddress);
-  radio.setPALevel(RF24_PA_MIN); 
-  radio.stopListening();  
-*/
+  
   radio.setChannel(90);
   network.begin(/*node address*/ THIS_NODE);
 
@@ -101,12 +152,12 @@ void loop() {
 
 void printStatus() {
   Serial.println("CPU OK. Estat actual:");
-#if 0
-    for (int nButton = 0; nButton < numButtons; nButton++) {
-      snprintf(buffer, sizeof(buffer)," * Boto local %d, rele remot %d, estat %s.", buttons[nButton].pin, buttons[nButton].remotePin, buttons[nButton].state==HIGH? "TANCAT":"OBERT");
-      Serial.println(buffer);
-    }
-#endif
+
+  for (int nButton = 0; nButton < numButtons; nButton++) {
+    snprintf(buffer, sizeof(buffer)," * Boto local %d, rele remot %d, estat %s.", buttons[nButton].pin, buttons[nButton].remotePin, buttons[nButton].state==HIGH? "TANCAT":"OBERT");
+    Serial.println(buffer);
+  }
+
 }
 
 bool receiveMessages() {
@@ -131,32 +182,35 @@ bool receiveMessages() {
 }
 
 bool thereAreChanges = true;
+#define NREADS_EE_NOISE 1 // Filtering posible ee noise?
+uint8_t expanderBytes[NUM_EXPANDERS][NREADS_EE_NOISE] = {0};
 
 void readInputs() {
   //Serial.println("llegint pins");
-#if 0
-  for (int nButton = 0; nButton < numButtons; nButton++) {
-    #ifdef USE_TORBEN_MOGENSEN
-    int tmpStates[7];
-    for (int i =0; i < 7; i++) {
-      tmpStates[i] = digitalRead(buttons[nButton].pin);
+  for (int i = 0; i < NUM_EXPANDERS; i++) {
+    for (int nreads =0; nreads < NREADS_EE_NOISE; nreads++) {
+      expanderBytes[i][nreads] = pcf[i].digitalReadByte();
     }
-    int state = torben_mogensen_median(tmpStates, 7);
-    #else
-    int state = digitalRead(buttons[nButton].pin);
-    #endif
+  }
+
+  for (int nButton = 0; nButton < numButtons; nButton++) {
+    int ones = 0, zeros = 0;
+    for (int nreads =0; nreads < NREADS_EE_NOISE; nreads++) {
+      const int tmp = (expanderBytes[buttons[nButton].nexpander][nreads] >> buttons[nButton].remotePin) & 1;
+      if (tmp == 1) ones++;
+      else zeros++;
+    }
+    const int state = ones > zeros? 1: 0;
 
     int & index = buttons[nButton].last;
     index = (index+1)%5;
     buttons[nButton].lastReads[index] = state;
-  }
-#endif
+  }  
 }
 
 void sendPinRequests() {
   bool neededInitialization = receiveMessages();
 
-#if 0
   for (int nButton = 0; nButton < numButtons; nButton++) {
     int sum = 0;
     for (int i = 0; i < 5; i++) {
@@ -204,7 +258,6 @@ void sendPinRequests() {
       generalStatus = ERROR;
     }
   }
-#endif
 }
 
 void nrf24Network() {

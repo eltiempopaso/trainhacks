@@ -17,8 +17,10 @@ RF24Network network(radio);  // Network uses that radio
 const uint16_t THIS_NODE = NODE_ID_ESTACIO;
 const uint16_t ENTRADA_NODE = NODE_ID_ENTRADA;
 
+#if 0
 OutputMechanism outputs[] = { {3, LOW}, {4, LOW}};
 int numOutputs = sizeof(outputs) / sizeof(outputs[0]);
+#endif
 bool initialized = false;
 
 char buffer[50];
@@ -34,6 +36,7 @@ Task taskReceiveMessages(90, TASK_FOREVER, &receiveMessages);
 Task taskPrintStatus (5000, TASK_FOREVER, &printStatus); 
 Task taskNrf24Network (100, TASK_FOREVER, &nrf24Network);
 
+#if 0
 int findOutputPosition(int pinId) {
     for (int i = 0; i < numOutputs; i++) {
         if (outputs[i].pinid == pinId) {
@@ -42,6 +45,7 @@ int findOutputPosition(int pinId) {
     }
     return -1;  // Return -1 if pinId is not found
 }
+#endif
 
 void setup()  {
   Serial.begin(9600);
@@ -104,9 +108,10 @@ void receiveMessages() {
 
     int nElements = size/sizeof(PinRequest);
 
-    snprintf(buffer, sizeof(buffer), "Missatge d'ENTRADA rebut. Estat %d reles:", nElements);
+    snprintf(buffer, sizeof(buffer), "Missatge rebut. Estat %d reles:", nElements);
     Serial.println(buffer);
 
+#if 0
     for (int i = 0; i<nElements; i++) {
       const PinRequest & aRequest = ((PinRequest *)receivingBuffer)[i];
 
@@ -134,6 +139,7 @@ void receiveMessages() {
         Serial.println(buffer);
       }
     }
+#endif
 
     initialized = true;
   }
