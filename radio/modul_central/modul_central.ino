@@ -18,11 +18,13 @@ typedef struct {
 RF24 radio(9, 10); 
 RF24Network network(radio);  // Network uses that radio
 
-const uint16_t THIS_NODE  = NODE_ID_ENTRADA;   // Address of our node in Octal format
-const uint16_t OTHER_NODE = NODE_ID_ESTACIO;   // Address of the other node in Octal format
+const uint16_t THIS_NODE  = NODE_ID_MODUL_CENTRAL;
+const uint16_t OTHER_NODE = NODE_ID_MODUL_ESCLAU;
 
+#if 0
 Button buttons[] = { {3, 3, 0}, {4, 4, 0} };
 int numButtons = sizeof(buttons) / sizeof(buttons[0]);
+#endif
 
 const int ledPin = 5;
 typedef enum {
@@ -99,11 +101,12 @@ void loop() {
 
 void printStatus() {
   Serial.println("CPU OK. Estat actual:");
-
+#if 0
     for (int nButton = 0; nButton < numButtons; nButton++) {
       snprintf(buffer, sizeof(buffer)," * Boto local %d, rele remot %d, estat %s.", buttons[nButton].pin, buttons[nButton].remotePin, buttons[nButton].state==HIGH? "TANCAT":"OBERT");
       Serial.println(buffer);
     }
+#endif
 }
 
 bool receiveMessages() {
@@ -131,7 +134,7 @@ bool thereAreChanges = true;
 
 void readInputs() {
   //Serial.println("llegint pins");
-
+#if 0
   for (int nButton = 0; nButton < numButtons; nButton++) {
     #ifdef USE_TORBEN_MOGENSEN
     int tmpStates[7];
@@ -147,11 +150,13 @@ void readInputs() {
     index = (index+1)%5;
     buttons[nButton].lastReads[index] = state;
   }
+#endif
 }
 
 void sendPinRequests() {
   bool neededInitialization = receiveMessages();
 
+#if 0
   for (int nButton = 0; nButton < numButtons; nButton++) {
     int sum = 0;
     for (int i = 0; i < 5; i++) {
@@ -199,6 +204,7 @@ void sendPinRequests() {
       generalStatus = ERROR;
     }
   }
+#endif
 }
 
 void nrf24Network() {
