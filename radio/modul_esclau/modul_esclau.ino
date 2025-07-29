@@ -10,6 +10,8 @@
 
 #include "src/Desvio.h"
 #include "src/Aillament.h"
+#include "src/Inversor.h"
+#include "src/SelectorCorrent.h"
 
 #define NRELES_EXPANDERS 3
 PCA9535 relesExpander[NRELES_EXPANDERS];
@@ -40,6 +42,18 @@ Desvio desvios[] = {
     Desvio(&relesExpander[1], {23,10}, {24,11}),
 };
 const int numDesvios = sizeof(desvios) / sizeof(desvios[0]);
+
+Inversor inversors[] {
+    Inversor(&relesExpander[3], {25,  0, 1}),
+    Inversor(&relesExpander[3], {26,  2, 3}),
+};
+const int numInversors = sizeof(inversors) / sizeof(inversors[0]);
+
+SelectorCorrent selectors[] {
+    SelectorCorrent(&relesExpander[3], {27,  4, 5}), // 6 y 7 para apagar potencia....
+};
+const int numSelectors = sizeof(selectors) / sizeof(selectors[0]);
+
 
 RF24 radio(9, 10);
 RF24Network network(radio);  // Network uses that radio
@@ -145,6 +159,14 @@ void receiveMessages() {
       for (int n = 0; n < numDesvios; n++) {
         desvios[n].signalReceived(aRequest.pin, aRequest.value); // should i invert because of pullups?  
       }
+
+      for (int n = 0; n < numInversors; n++) {
+        inversors[n].signalReceived(aRequest.pin, aRequest.value); // should i invert because of pullups?  
+      }     
+
+      for (int n = 0; n < numSelectors; n++) {
+        selectors[n].signalReceived(aRequest.pin, aRequest.value); // should i invert because of pullups?  
+      }     
 
       snprintf(buffer, sizeof(buffer), "Configuro Pin %d. Estat %s.", aRequest.pin, aRequest.value==HIGH? "TANCAT": "OBERT");
       Serial.println(buffer);
