@@ -5,7 +5,7 @@
 
 #include <TaskScheduler.h>
 #include "torbenmogensen.h"
-#include "protocol.h"
+#include "src/transmitter/common/protocol.h"
 
 typedef struct {
   int pin;
