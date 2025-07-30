@@ -54,7 +54,7 @@ void initHw() {
   }
 }
 
-void onRequestReceived( const PinRequest & aRequest ) {
+void onRequestReceived( const PinRequest & aRequest, const bool initialized ) {
 	for (int n = 0; n < numAillaments; n++) {
 		aillaments[n].signalReceived(aRequest.pin, aRequest.value); // should i invert because of pullups?  
 	}

@@ -11,7 +11,7 @@
 
 
 void initHw();
-void onRequestReceived(const PinRequest & aRequest);
+void onRequestReceived(const PinRequest & aRequest, const bool initialized);
 
 RF24 radio(9, 10);
 RF24Network network(radio);  // Network uses that radio
@@ -100,7 +100,7 @@ void receiveMessages() {
 
     for (int i = 0; i<nElements; i++) {
       const PinRequest & aRequest = ((PinRequest *)receivingBuffer)[i];
-      onRequestReceived( aRequest );
+      onRequestReceived( aRequest, initialized );
       snprintf(buffer, sizeof(buffer), "Configuro Pin %d. Estat %s.", aRequest.pin, aRequest.value==HIGH? "TANCAT": "OBERT");
       Serial.println(buffer);
 
