@@ -5,7 +5,7 @@
 
 #include <TaskScheduler.h>
 #include <Adafruit_PCF8574.h>
-#include "protocol.h"
+#include "src/transmitter/common/protocol.h"
 
 typedef struct {
   int nexpander;
