@@ -21,7 +21,7 @@ RAW_SKETCH_PATH=${1:-".."}
 
 # Convert to absolute paths
 SKETCH_PATH=$(abs_path "$RAW_SKETCH_PATH")
-BUILD_PATH=$(abs_path "${BUILD_PATH:-$SKETCH_PATH/build}")
+BUILD_PATH=$(abs_path ".")/output_build
 
 # Create build path if it doesn't exist
 mkdir -p "$BUILD_PATH"

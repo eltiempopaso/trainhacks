@@ -2,7 +2,7 @@
 
 # Get absolute path to this script
 SCRIPT_PATH="$(realpath "$0")"
-ROOT_PATH="$(dirname "$SCRIPT_PATH")/.."
+ROOT_PATH="$(dirname "$SCRIPT_PATH")/../nodes"
 
 # Find all directories named "bin" recursively from ROOT_PATH
 find "$ROOT_PATH" -type d -name bin | while read -r BIN_DIR; do
