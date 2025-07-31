@@ -130,7 +130,7 @@ void userInits(/*Scheduler & runner*/) {
   Wire.begin();
   for (int i = 0; i < NUM_EXPANDERS; i++) {
 	  if (!pcf[i].begin(i2cAddrs[i], &Wire)) {
-	    Serial.println("Couldn't find PCF8574");
+	    logMessage("ERROR. Couldn't find PCF8574 with address %d", i2cAddrs[i]);
 	    while (1);
 	  }
 

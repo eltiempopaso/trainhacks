@@ -21,8 +21,6 @@ PinRequest requests[numButtons] = {0};
 const unsigned requestsSize = sizeof(requests);
 
 void readInputs() {
-  //Serial.println("llegint pins");
-
   for (int nButton = 0; nButton < numButtons; nButton++) {
     #ifdef USE_TORBEN_MOGENSEN
     int tmpStates[7];
@@ -35,7 +33,7 @@ void readInputs() {
     #endif
 
     uint8_t & index = buttons[nButton].last;
-    index = (index+1)%5;
+    index = (index+1)%NSAMPLES_CHANGES_FILTER;
     buttons[nButton].lastReads[index] = state;
   }
 }
