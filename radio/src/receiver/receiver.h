@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/protocol.h"
+#include "common/logger.h"
 
 #include "actuators/Desvio.h"
 #include "actuators/Aillament.h"
