@@ -1,4 +1,3 @@
-#include "torbenmogensen.h"
 #include "src/transmitter/transmitter.h"
 
 #define NSAMPLES_CHANGES_FILTER 5
