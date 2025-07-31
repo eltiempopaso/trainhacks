@@ -1,30 +1,26 @@
-#include <SPI.h>
-#include <nRF24L01.h>
-#include <RF24.h>
-#include <RF24Network.h>
-
-#include <TaskScheduler.h>
 #include <Adafruit_PCF8574.h>
-#include "src/transmitter/common/protocol.h"
+#include "src/transmitter/transmitter.h"
+
+#define NSAMPLES_CHANGES_FILTER 3
 
 typedef struct {
-  int nexpander;
-  int pin;
-  int remotePin;
-  int state;
-  int lastReads[5];
-  int last;
+  uint8_t nexpander;
+  uint8_t pin;
+  uint8_t remotePin;
+  uint8_t state;
+  uint8_t lastReads[NSAMPLES_CHANGES_FILTER];
+  uint8_t last;
 } Button;
 
-RF24 radio(9, 10); 
-RF24Network network(radio);  // Network uses that radio
-
 const uint16_t THIS_NODE  = NODE_ID_MODUL_CENTRAL;
-const uint16_t OTHER_NODE = NODE_ID_MODUL_ESCLAU;
+const uint16_t RECEIVER_NODE = NODE_ID_MODUL_ESCLAU;
 
 #define NUM_EXPANDERS 5
 Adafruit_PCF8574 pcf[NUM_EXPANDERS];
 uint8_t i2cAddrs[NUM_EXPANDERS] = { 0x20, 0x21, 0x22, 0x23, 0x24 };
+
+#define NREADS_EE_NOISE 1 // Filtering posible ee noise?
+uint8_t expanderBytes[NUM_EXPANDERS][NREADS_EE_NOISE] = {0};
 
 Button buttons[] = { 
                       // AILLAMENT VIES
@@ -70,122 +66,11 @@ Button buttons[] = {
                       // SELECCIONADOR TRANSFORMADOR
                      {4, 2, 29, 0},
                     };
+const int numButtons = sizeof(buttons) / sizeof(buttons[0]);
 
-int numButtons = sizeof(buttons) / sizeof(buttons[0]);
 
-const int ledPin = 5;
-typedef enum {
-  OK,
-  ERROR,
-  NO_REMOTE
-} GeneralStatus;
-
-GeneralStatus generalStatus = OK;
-
-//int msForNextStatusPrint = PRINT_STATUS_TIMEOUT_MS;
-char buffer[50];
-
-// Create a scheduler object
-Scheduler runner;
-
-// Task functions
-void printStatus();
-void readInputs();
-void sendPinRequests();
-void nrf24Network();
-void statusLed();
-
-// Define tasks
-Task taskPrintStatus(5000, TASK_FOREVER, &printStatus); 
-Task taskReadPinInputs (30, TASK_FOREVER, &readInputs); 
-Task taskSendPinRequests   (200, TASK_FOREVER, &sendPinRequests); 
-Task taskNrf24Network (100, TASK_FOREVER, &nrf24Network); 
-Task taskStatusLED (500, TASK_FOREVER, &statusLed); 
-
-void setup()  {
-  Serial.begin(9600);
-  while (!Serial) {
-    // some boards need this because of native USB capability
-  }
-
-  Wire.begin();
-
-  for (int i = 0; i < NUM_EXPANDERS; i++) {
-  if (!pcf[i].begin(i2cAddrs[i], &Wire)) {
-    Serial.println("Couldn't find PCF8574");
-    while (1);
-  }
-
-  for (uint8_t p=0; p<8; p++) {
-    pcf[i].pinMode(p, INPUT_PULLUP);
-  }
-  }
-  
-
-  if (!radio.begin()) {
-    Serial.println(F("Radio hardware not responding!"));
-    while (1) {
-      // hold in infinite loop
-    }
-  }
-  
-  radio.setChannel(90);
-  network.begin(/*node address*/ THIS_NODE);
-
-  runner.addTask(taskPrintStatus);
-  runner.addTask(taskReadPinInputs);
-  runner.addTask(taskSendPinRequests);
-  runner.addTask(taskNrf24Network);
-  runner.addTask(taskStatusLED);
-
-  taskPrintStatus.enable();
-  taskSendPinRequests.enable();
-  taskNrf24Network.enable();
-  taskReadPinInputs.enable();
-  taskStatusLED.enable();
-
-  Serial.println("Inicialitzat!");
-}
-
-void loop() {
-  // Execute scheduled tasks
-  runner.execute();
-}
-
-void printStatus() {
-  Serial.println("CPU OK. Estat actual:");
-
-  for (int nButton = 0; nButton < numButtons; nButton++) {
-    snprintf(buffer, sizeof(buffer)," * Boto local %d, rele remot %d, estat %s.", buttons[nButton].pin, buttons[nButton].remotePin, buttons[nButton].state==HIGH? "TANCAT":"OBERT");
-    Serial.println(buffer);
-  }
-
-}
-
-bool receiveMessages() {
-   //Serial.println("Rebent missatges");
-
-  bool initializationRequested = false;
-  InitializationRequest ir;
-
-  while (network.available()) {  // Is there anything ready for us?
-    RF24NetworkHeader header;  // If so, grab it and print it out
-    //payload_t payload;
-    
-    uint16_t size = network.read(header, &ir, sizeof(ir));
-
-    initializationRequested = true; // assuming the only message I can receive is the initialization one
-
-    snprintf(buffer, sizeof(buffer), "Peticio SYNC rebuda.");
-    Serial.println(buffer);
-  }
-
-  return initializationRequested;
-}
-
-bool thereAreChanges = true;
-#define NREADS_EE_NOISE 1 // Filtering posible ee noise?
-uint8_t expanderBytes[NUM_EXPANDERS][NREADS_EE_NOISE] = {0};
+PinRequest requests[numButtons] = {0};
+const unsigned requestsSize = sizeof(requests);
 
 void readInputs() {
   //Serial.println("llegint pins");
@@ -198,24 +83,24 @@ void readInputs() {
   for (int nButton = 0; nButton < numButtons; nButton++) {
     int ones = 0, zeros = 0;
     for (int nreads =0; nreads < NREADS_EE_NOISE; nreads++) {
-      const int tmp = (expanderBytes[buttons[nButton].nexpander][nreads] >> buttons[nButton].remotePin) & 1;
+      const int tmp = (expanderBytes[buttons[nButton].nexpander][nreads] >> buttons[nButton].pin) & 1;
       if (tmp == 1) ones++;
       else zeros++;
     }
     const int state = ones > zeros? 1: 0;
 
-    int & index = buttons[nButton].last;
-    index = (index+1)%5;
+    uint8_t & index = buttons[nButton].last;
+    index = (index+1)%NSAMPLES_CHANGES_FILTER;
     buttons[nButton].lastReads[index] = state;
   }  
 }
 
-void sendPinRequests() {
-  bool neededInitialization = receiveMessages();
+bool checkIfThereAreChanges() {
+  bool thereAreChanges = false;
 
   for (int nButton = 0; nButton < numButtons; nButton++) {
     int sum = 0;
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < NSAMPLES_CHANGES_FILTER; i++) {
       sum+=buttons[nButton].lastReads[i];
     }
     
@@ -223,65 +108,35 @@ void sendPinRequests() {
       thereAreChanges = true; 
       buttons[nButton].state = LOW;
 
-      snprintf(buffer, sizeof(buffer), "CANVI DETECTAT. Pin %d, remot %d. Estat: %s", buttons[nButton].pin, buttons[nButton].remotePin, buttons[nButton].state==HIGH? "TANCAT":"OBERT");
-      Serial.println(buffer);
-    } else if (sum == 5 && buttons[nButton].state == LOW) {
+      logMessage("CANVI DETECTAT. Pin %d, remot %d. Estat: %s", buttons[nButton].pin, buttons[nButton].remotePin, buttons[nButton].state==HIGH? "TANCAT":"OBERT");
+    } else if (sum == NSAMPLES_CHANGES_FILTER && buttons[nButton].state == LOW) {
       thereAreChanges = true;
       buttons[nButton].state = HIGH;
 
-      snprintf(buffer, sizeof(buffer), "CANVI DETECTAT. Pin %d, remot %d. Estat: %s", buttons[nButton].pin, buttons[nButton].remotePin, buttons[nButton].state==HIGH? "TANCAT":"OBERT");
-      Serial.println(buffer);
+      logMessage("CANVI DETECTAT. Pin %d, remot %d. Estat: %s", buttons[nButton].pin, buttons[nButton].remotePin, buttons[nButton].state==HIGH? "TANCAT":"OBERT");
     } else {
       // sense canvis
     }
   }
 
-  if (thereAreChanges || neededInitialization) {
-    PinRequest requests[numButtons];
-    for (int nButton = 0; nButton < numButtons; nButton++) {
-      requests[nButton] = {(byte)buttons[nButton].remotePin, buttons[nButton].state==0?0:1};
-    }
-    
-    RF24NetworkHeader header(/*to node*/ OTHER_NODE);            
-    bool ok = network.write(header, requests, sizeof(requests));
-
-    if (ok) {
-      snprintf(buffer, sizeof(buffer), "SYNC OK");
-      Serial.println(buffer);
-
-      thereAreChanges = false; 
-
-      generalStatus = OK;
-    } else {
-      // keep thereAreChanges = true to resend message
-      snprintf(buffer, sizeof(buffer), "SYNC ERROR. Node ESTACIO no trobat.");
-      Serial.println(buffer);
-
-      generalStatus = ERROR;
-    }
+  for (int nButton = 0; nButton < numButtons; nButton++) {
+    requests[nButton] = {(byte)buttons[nButton].remotePin, buttons[nButton].state==0?0:1};
   }
+
+  return thereAreChanges;
 }
 
-void nrf24Network() {
-  //Serial.println("network update");
-  network.update();  // Check the network regularly
-}
+void userInits(/*Scheduler & runner*/) {
+  Wire.begin();
+  for (int i = 0; i < NUM_EXPANDERS; i++) {
+	  if (!pcf[i].begin(i2cAddrs[i], &Wire)) {
+	    Serial.println("Couldn't find PCF8574");
+	    while (1);
+	  }
 
-void statusLed() {
-  static int counter = 0;
-  static int LED_CURRENT = LOW;
-
-  counter = (counter+1)%4;
-
-  if (generalStatus == OK && counter ==0) { // blink slowly
-    LED_CURRENT = LED_CURRENT==LOW?HIGH:LOW;
-    digitalWrite(ledPin, LED_CURRENT);    
-
-    Serial.println("OK. TOOGLE");
-  } else if (generalStatus == ERROR) {
-    LED_CURRENT = LED_CURRENT==LOW?HIGH:LOW;
-    digitalWrite(ledPin, LED_CURRENT);    
-
-    Serial.println("ERROR. TOOGLE");
+	  for (uint8_t p=0; p<8; p++) {
+	    pcf[i].pinMode(p, INPUT_PULLUP);
+	  }
   }
+
 }

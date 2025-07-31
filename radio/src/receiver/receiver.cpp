@@ -67,18 +67,14 @@ void loop() {
 }
 
 void printStatus() {
-  snprintf(buffer, sizeof(buffer), "Estat actual: %s", initialized? "INICIALITZAT": "SENSE INICIALITZAR");
-  Serial.println(buffer);
-
+  logMessage("Estat actual: %s", initialized? "INICIALITZAT": "SENSE INICIALITZAR");
+  
   if (!initialized) {
     InitializationRequest ir { THIS_NODE };
     RF24NetworkHeader header(/*to node*/ EMITTER_NODE);            
     bool ok = network.write(header, &ir, sizeof(ir));
 
-   // same algorithm if destination received or not (write ok true or false)
-
-    snprintf(buffer, sizeof(buffer), "Peticio SYNC enviada al node EMISOR.");
-    Serial.println(buffer);
+    logMessage("Peticio SYNC enviada al node EMISOR.");
   }
 }
 
@@ -94,16 +90,13 @@ void receiveMessages() {
 
     int nElements = size/sizeof(PinRequest);
 
-    snprintf(buffer, sizeof(buffer), "Missatge rebut. Estat %d reles:", nElements);
-    Serial.println(buffer);
-
+    logMessage("Missatge rebut. Estat %d reles:", nElements);
 
     for (int i = 0; i<nElements; i++) {
       const PinRequest & aRequest = ((PinRequest *)receivingBuffer)[i];
       onRequestReceived( aRequest, initialized );
-      snprintf(buffer, sizeof(buffer), "Configuro Pin %d. Estat %s.", aRequest.pin, aRequest.value==HIGH? "TANCAT": "OBERT");
-      Serial.println(buffer);
 
+      logMessage("Configuro Pin %d. Estat %s.", aRequest.pin, aRequest.value==HIGH? "TANCAT": "OBERT");
     }
 
     initialized = true;
