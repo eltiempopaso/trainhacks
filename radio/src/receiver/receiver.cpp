@@ -16,9 +16,9 @@ void onRequestReceived(const PinRequest & aRequest, const bool initialized);
 RF24 radio(9, 10);
 RF24Network network(radio);  // Network uses that radio
 
-bool initialized = false;
+const int ledPin = 5;
 
-char buffer[50];
+bool initialized = false;
 
 // Create a scheduler object
 Scheduler runner;

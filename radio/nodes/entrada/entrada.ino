@@ -71,5 +71,5 @@ bool checkIfThereAreChanges() {
 }
 
 void userInits(/*Scheduler & runner*/) {
-
+    pinMode(buttons[0].pin, INPUT);
 }

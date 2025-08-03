@@ -58,6 +58,8 @@ void setup()  {
   radio.setChannel(90);
   network.begin(/*node address*/ THIS_NODE);
 
+  pinMode(ledPin, OUTPUT);
+
   runner.addTask(taskPrintStatus);
   runner.addTask(taskSendPinRequests);
   runner.addTask(taskNrf24Network);
