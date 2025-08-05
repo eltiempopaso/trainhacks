@@ -9,7 +9,6 @@
 #include "common/protocol.h"
 #include "receiver.h"
 
-
 void initHw();
 void onRequestReceived(const PinRequest & aRequest, const bool initialized);
 
@@ -26,12 +25,17 @@ Scheduler runner;
 void printStatus();
 void receiveMessages();
 void nrf24Network();
+void statusLed();
 
 Task taskReceiveMessages(90, TASK_FOREVER, &receiveMessages); 
 Task taskPrintStatus (5000, TASK_FOREVER, &printStatus); 
 Task taskNrf24Network (100, TASK_FOREVER, &nrf24Network);
+Task taskStatusLED (500, TASK_FOREVER, &statusLed); 
 
 void setup()  {
+  pinMode(ledPin, OUTPUT);
+  digitalWrite(ledPin, HIGH); // switch on led while initializing
+
   Serial.begin(9600);
   while (!Serial) {
     // some boards need this because of native USB capability
@@ -39,13 +43,12 @@ void setup()  {
 
   if (!radio.begin()) {
     Serial.println(F("ERROR GREU. El NRF24 no respon!"));
-    while (1) {
-      // hold in infinite loop
-    }
+    while (1) { /* hold in infinite loop */ }
   }
 
   radio.setChannel(90);
   network.begin(/*node address*/ THIS_NODE);
+
 
   initHw();  
 
@@ -58,11 +61,11 @@ void setup()  {
   taskPrintStatus.enable();
   taskReceiveMessages.enable();
   taskNrf24Network.enable();
-  //Serial.println("Antena configurada OK.");
+
+  logMessage("Inicialitzat!");
 }
 
 void loop() {
-   // Execute scheduled tasks
   runner.execute();
 }
 
@@ -105,4 +108,23 @@ void receiveMessages() {
 
 void nrf24Network() {
   network.update();  // Check the network regularly
+}
+
+void statusLed() {
+  static int counter = 0;
+  static int LED_CURRENT = LOW;
+
+  counter = (counter+1)%4;
+
+  if (initialized && counter ==0) { // blink slowly
+    LED_CURRENT = LED_CURRENT==LOW?HIGH:LOW;
+    digitalWrite(ledPin, LED_CURRENT);    
+
+    logMessage("OK. TOOGLE");
+  } else if (!initialized) {
+    LED_CURRENT = LED_CURRENT==LOW?HIGH:LOW;
+    digitalWrite(ledPin, LED_CURRENT);    
+
+    logMessage("ERROR. TOOGLE");
+  }
 }

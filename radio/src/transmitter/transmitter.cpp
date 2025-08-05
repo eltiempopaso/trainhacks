@@ -10,7 +10,7 @@
 
 // USER DECLARED
 bool checkIfThereAreChanges();
-void userInits();
+void initHw();
 void readInputs(); // this task should be moved to user side. 
 
 const int ledPin = 5;
@@ -43,13 +43,16 @@ RF24Network network(radio);  // Network uses that radio
 
 
 void setup()  {
+  pinMode(ledPin, OUTPUT);
+  digitalWrite(ledPin, HIGH); // switch on led while initializing
+			      //
   Serial.begin(9600);
   while (!Serial) {
     // some boards need this because of native USB capability
   }
 
   if (!radio.begin()) {
-    Serial.println(F("Radio hardware not responding!"));
+    logMessage("Radio hardware not responding!");
     while (1) {
       // hold in infinite loop
     }
@@ -58,7 +61,7 @@ void setup()  {
   radio.setChannel(90);
   network.begin(/*node address*/ THIS_NODE);
 
-  pinMode(ledPin, OUTPUT);
+  initHw();
 
   runner.addTask(taskPrintStatus);
   runner.addTask(taskSendPinRequests);
@@ -72,18 +75,16 @@ void setup()  {
   taskStatusLED.enable();
   taskReadPinInputs.enable();
 
-  userInits();
 
-  Serial.println("Inicialitzat!");
+  logMessage("Inicialitzat!");
 }
 
 void loop() {
-  // Execute scheduled tasks
   runner.execute();
 }
 
 void printStatus() {
-  Serial.println("CPU OK. Estat actual:");
+  logMessage("CPU OK. Estat actual:");
 	
   /*
   for (int nButton = 0; nButton < numButtons; nButton++) {
@@ -93,19 +94,14 @@ void printStatus() {
 }
 
 bool receiveMessages() {
-   //Serial.println("Rebent missatges");
-
   bool initializationRequested = false;
   InitializationRequest ir;
 
   while (network.available()) {  // Is there anything ready for us?
     RF24NetworkHeader header;  // If so, grab it and print it out
-    //payload_t payload;
-    
-    uint16_t size = network.read(header, &ir, sizeof(ir));
+    //uint16_t size = network.read(header, &ir, sizeof(ir));
 
-    initializationRequested = true; // assuming the only message I can receive is the initialization one
-    
+    initializationRequested = true; // assuming I can only receive initialization messages
     logMessage("Peticio SYNC rebuda.");
   }
 
@@ -113,17 +109,12 @@ bool receiveMessages() {
 }
 
 bool thereAreChanges = true;
-
-
 void sendPinRequests() {
-  bool neededInitialization = receiveMessages();
-
-  bool changesDetected = checkIfThereAreChanges();
+  const bool neededInitialization = receiveMessages();
+  const bool changesDetected = checkIfThereAreChanges();
   if (!thereAreChanges) thereAreChanges = changesDetected;
 
-
   if (thereAreChanges || neededInitialization) {
-        
     RF24NetworkHeader header(/*to node*/ RECEIVER_NODE);            
     bool ok = network.write(header, requests, requestsSize);
 
@@ -143,7 +134,6 @@ void sendPinRequests() {
 }
 
 void nrf24Network() {
-  //Serial.println("network update");
   network.update();  // Check the network regularly
 }
 
@@ -157,11 +147,11 @@ void statusLed() {
     LED_CURRENT = LED_CURRENT==LOW?HIGH:LOW;
     digitalWrite(ledPin, LED_CURRENT);    
 
-    Serial.println("OK. TOOGLE");
+    logMessage("OK. TOOGLE");
   } else if (generalStatus == ERROR) {
     LED_CURRENT = LED_CURRENT==LOW?HIGH:LOW;
     digitalWrite(ledPin, LED_CURRENT);    
 
-    Serial.println("ERROR. TOOGLE");
+    logMessage("ERROR. TOOGLE");
   }
 }

@@ -126,7 +126,7 @@ bool checkIfThereAreChanges() {
   return thereAreChanges;
 }
 
-void userInits(/*Scheduler & runner*/) {
+void initHw() {
   Wire.begin();
   for (int i = 0; i < NUM_EXPANDERS; i++) {
 	  if (!pcf[i].begin(i2cAddrs[i], &Wire)) {

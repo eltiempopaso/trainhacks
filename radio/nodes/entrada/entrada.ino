@@ -70,6 +70,6 @@ bool checkIfThereAreChanges() {
   return thereAreChanges;
 }
 
-void userInits(/*Scheduler & runner*/) {
+void initHw() {
     pinMode(buttons[0].pin, INPUT);
 }
