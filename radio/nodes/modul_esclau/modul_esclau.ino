@@ -35,13 +35,13 @@ Desvio desvios[] = {
 const int numDesvios = sizeof(desvios) / sizeof(desvios[0]);
 
 Inversor inversors[] {
-    Inversor(&relesExpander[3], {25,  0, 1}),
-    Inversor(&relesExpander[3], {26,  2, 3}),
+    Inversor(&relesExpander[2], {25,  0, 1}),
+    Inversor(&relesExpander[2], {26,  2, 3}),
 };
 const int numInversors = sizeof(inversors) / sizeof(inversors[0]);
 
 SelectorCorrent selectors[] {
-    SelectorCorrent(&relesExpander[3], {27,  4, 5}), // 6 y 7 para apagar potencia....
+    SelectorCorrent(&relesExpander[2], {27,  4, 5}), // 6 y 7 para apagar potencia....
 };
 const int numSelectors = sizeof(selectors) / sizeof(selectors[0]);
 

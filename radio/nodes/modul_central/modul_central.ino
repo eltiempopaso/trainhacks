@@ -58,15 +58,14 @@ Button buttons[] = {
                      {3, 2, 23, 0},
                      {3, 3, 24, 0},
 
-#if 0   
+
                             
                       // INVERSOR GENERAL
-                     {4, 0, 27, 0},
+                     {4, 0, 25, 0},
                       // INVERSOR LOCAL
-                     {4, 1, 28, 0},
+                     {4, 1, 26, 0},
                       // SELECCIONADOR TRANSFORMADOR
-                     {4, 2, 29, 0},
-                     #endif
+                     {4, 2, 27, 0},
                     };
 const int numButtons = sizeof(buttons) / sizeof(buttons[0]);
 
