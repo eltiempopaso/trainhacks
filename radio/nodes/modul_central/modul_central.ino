@@ -108,12 +108,12 @@ bool checkIfThereAreChanges() {
       thereAreChanges = true; 
       buttons[nButton].state = LOW;
 
-      logMessage("CANVI DETECTAT. Pin %d, remot %d. Estat: %s", buttons[nButton].pin, buttons[nButton].remotePin, buttons[nButton].state==HIGH? "TANCAT":"OBERT");
+      logMessage("CANVI DETECTAT. Expander %d. Pin %d, remot %d. Estat: %s (sum=%d)", buttons[nButton].nexpander , buttons[nButton].pin, buttons[nButton].remotePin, buttons[nButton].state==HIGH? "TANCAT":"OBERT", sum);
     } else if (sum == NSAMPLES_CHANGES_FILTER && buttons[nButton].state == LOW) {
       thereAreChanges = true;
       buttons[nButton].state = HIGH;
 
-      logMessage("CANVI DETECTAT. Pin %d, remot %d. Estat: %s", buttons[nButton].pin, buttons[nButton].remotePin, buttons[nButton].state==HIGH? "TANCAT":"OBERT");
+      logMessage("CANVI DETECTAT. Expander %d. Pin %d, remot %d. Estat: %s (sum=%d)", buttons[nButton].nexpander , buttons[nButton].pin, buttons[nButton].remotePin, buttons[nButton].state==HIGH? "TANCAT":"OBERT", sum);
     } else {
       // sense canvis
     }

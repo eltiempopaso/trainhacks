@@ -1,7 +1,7 @@
 #include "src/receiver/receiver.h"
 
-const uint16_t THIS_NODE = NODE_ID_ESTACIO;
-const uint16_t EMITTER_NODE = NODE_ID_ENTRADA;
+const uint16_t THIS_NODE = NODE_ID_MODUL_ESCLAU;
+const uint16_t EMITTER_NODE = NODE_ID_MODUL_CENTRAL;
 
 #define NRELES_EXPANDERS 3
 PCA9535 relesExpander[NRELES_EXPANDERS];

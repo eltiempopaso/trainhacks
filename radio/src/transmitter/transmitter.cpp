@@ -38,7 +38,7 @@ Task taskNrf24Network (100, TASK_FOREVER, &nrf24Network);
 Task taskStatusLED (500, TASK_FOREVER, &statusLed); 
 Task taskReadPinInputs (30, TASK_FOREVER, &readInputs); 
 
-RF24 radio(9, 10); 
+RF24 radio(10, 9); 
 RF24Network network(radio);  // Network uses that radio
 
 
@@ -60,6 +60,8 @@ void setup()  {
   
   radio.setChannel(90);
   network.begin(/*node address*/ THIS_NODE);
+
+  logMessage("network initialized. This node id %d.", THIS_NODE);
 
   initHw();
 
@@ -99,10 +101,10 @@ bool receiveMessages() {
 
   while (network.available()) {  // Is there anything ready for us?
     RF24NetworkHeader header;  // If so, grab it and print it out
-    //uint16_t size = network.read(header, &ir, sizeof(ir));
+    uint16_t size = network.read(header, &ir, sizeof(ir));
 
     initializationRequested = true; // assuming I can only receive initialization messages
-    logMessage("Peticio SYNC rebuda.");
+    logMessage("Peticio SYNC rebuda - %d.", size);
   }
 
   return initializationRequested;
@@ -112,6 +114,7 @@ bool thereAreChanges = true;
 void sendPinRequests() {
   const bool neededInitialization = receiveMessages();
   const bool changesDetected = checkIfThereAreChanges();
+  
   if (!thereAreChanges) thereAreChanges = changesDetected;
 
   if (thereAreChanges || neededInitialization) {
@@ -126,7 +129,7 @@ void sendPinRequests() {
       generalStatus = OK;
     } else {
       // keep thereAreChanges = true to resend message
-      logMessage("SYNC ERROR. Node ESTACIO no trobat.");
+      logMessage("SYNC ERROR. Node ESTACIO no trobat %d. Sent size %d.", RECEIVER_NODE, requestsSize);
 
       generalStatus = ERROR;
     }

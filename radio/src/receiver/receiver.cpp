@@ -12,7 +12,7 @@
 void initHw();
 void onRequestReceived(const PinRequest & aRequest, const bool initialized);
 
-RF24 radio(9, 10);
+RF24 radio(10, 9);
 RF24Network network(radio);  // Network uses that radio
 
 const int ledPin = 5;
@@ -49,8 +49,9 @@ void setup()  {
   radio.setChannel(90);
   network.begin(/*node address*/ THIS_NODE);
 
+  logMessage("network initialized. This node id %d.", THIS_NODE);
 
-  initHw();  
+  //initHw();  
 
   printStatus(); // force sending initialization
 
@@ -77,7 +78,7 @@ void printStatus() {
     RF24NetworkHeader header(/*to node*/ EMITTER_NODE);            
     bool ok = network.write(header, &ir, sizeof(ir));
 
-    logMessage("Peticio SYNC enviada al node EMISOR.");
+    logMessage("Peticio SYNC enviada al node EMISOR (%d).", EMITTER_NODE);
   }
 }
 
