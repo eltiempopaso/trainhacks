@@ -10,8 +10,11 @@ typedef struct {
 } PinRequest;
 
 // ALL NODES ADDRESSES
+
+// XARXA TERRAT
 const uint16_t NODE_ID_ENTRADA  = 00;   
 const uint16_t NODE_ID_ESTACIO  = 01; 
 
-const uint16_t NODE_ID_MODUL_CENTRAL = 50;
-const uint16_t NODE_ID_MODUL_ESCLAU  = 51;
+// XARXA TERRAT
+const uint16_t NODE_ID_MODUL_CENTRAL = 00;
+const uint16_t NODE_ID_MODUL_ESCLAU  = 01;

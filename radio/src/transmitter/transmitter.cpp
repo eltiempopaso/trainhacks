@@ -58,7 +58,7 @@ void setup()  {
     }
   }
   
-  radio.setChannel(90);
+  radio.setChannel(NRF24_NETWORK_CHANNEL);
   network.begin(/*node address*/ THIS_NODE);
 
   logMessage("network initialized. This node id %d.", THIS_NODE);

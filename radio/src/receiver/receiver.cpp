@@ -46,7 +46,7 @@ void setup()  {
     while (1) { /* hold in infinite loop */ }
   }
 
-  radio.setChannel(90);
+  radio.setChannel(NRF24_NETWORK_CHANNEL);
   network.begin(/*node address*/ THIS_NODE);
 
   logMessage("network initialized. This node id %d.", THIS_NODE);
@@ -63,7 +63,7 @@ void setup()  {
   taskReceiveMessages.enable();
   taskNrf24Network.enable();
 
-  logMessage("Inicialitzat!");
+  logMessage("Antena configurada OK");
 }
 
 void loop() {
@@ -78,7 +78,11 @@ void printStatus() {
     RF24NetworkHeader header(/*to node*/ EMITTER_NODE);            
     bool ok = network.write(header, &ir, sizeof(ir));
 
-    logMessage("Peticio SYNC enviada al node EMISOR (%d).", EMITTER_NODE);
+    if (ok) {
+	    logMessage("Peticio SYNC enviada al node EMISOR (%d).", EMITTER_NODE);
+    } else {
+	    logMessage("ERROR Sending SYNC request to EMISOR (%d).", EMITTER_NODE);
+    }
   }
 }
 

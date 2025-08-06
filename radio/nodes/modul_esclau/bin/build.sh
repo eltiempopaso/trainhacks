@@ -1,5 +1,12 @@
 #!/bin/bash
 
+
+# SPECIFIC CONFIGS....
+
+# Default NRF24_NETWORK_CHANNEL (can be overridden via env var)
+NRF24_NETWORK_CHANNEL=${NRF24_NETWORK_CHANNEL:-91}
+
+
 # Enable alias expansion
 shopt -s expand_aliases
 source ~/.bash_aliases
@@ -16,6 +23,7 @@ abs_path() {
 # Default board (can be overridden via env var)
 FQBN=${FQBN:-"arduino:avr:nano:cpu=atmega328old"}
 PORT=${PORT:-"/dev/ttyUSB1"}
+
 
 # Default sketch path is ".."
 SKETCH_PATH=".."
@@ -36,17 +44,19 @@ BUILD_PATH=$(abs_path ".")/output_build
 # Create build path if it doesn't exist
 mkdir -p "$BUILD_PATH"
 
-echo "🔧 Board     : $FQBN"
-echo "📁 Sketch    : $SKETCH_PATH"
-echo "🛠️  Mode      : $MODE"
-echo "📂 Build dir : $BUILD_PATH"
-[[ "$MODE" == "upload" ]] && echo "🔌 Port      : $PORT"
+echo "🔧 Board             : $FQBN"
+echo "📁 Sketch            : $SKETCH_PATH"
+echo "🛠️  Mode              : $MODE"
+echo "📂 Build dir         : $BUILD_PATH"
+echo "📡 NRF24 Network Chan: $NRF24_NETWORK_CHANNEL"
+[[ "$MODE" == "upload" ]] && echo "🔌 Port              : $PORT"
 
 # Compile
 echo "🚧 Compiling sketch..."
 arduino-cli compile \
   --fqbn "$FQBN" \
   --build-path "$BUILD_PATH" \
+  --build-property "build.extra_flags='-DNRF24_NETWORK_CHANNEL=$NRF24_NETWORK_CHANNEL'" \
   "$SKETCH_PATH" || { echo "❌ Compilation failed."; exit 1; }
 
 # Upload if requested
