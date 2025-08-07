@@ -5,6 +5,7 @@ const uint16_t EMITTER_NODE = NODE_ID_MODUL_CENTRAL;
 
 #define NRELES_EXPANDERS 3
 PCA9535 relesExpander[NRELES_EXPANDERS];
+uint8_t i2cAdrs[] = {0x20, 0x21, 0x22};
 
 Aillament aillaments[] {
     Aillament(&relesExpander[0], {0,  0}),
@@ -34,20 +35,21 @@ Desvio desvios[] = {
 const int numDesvios = sizeof(desvios) / sizeof(desvios[0]);
 
 Inversor inversors[] {
-    Inversor(&relesExpander[3], {25,  0, 1}),
-    Inversor(&relesExpander[3], {26,  2, 3}),
+    Inversor(&relesExpander[2], {25,  0, 1}),
+    Inversor(&relesExpander[2], {26,  2, 3}),
 };
 const int numInversors = sizeof(inversors) / sizeof(inversors[0]);
 
 SelectorCorrent selectors[] {
-    SelectorCorrent(&relesExpander[3], {27,  4, 5}), // 6 y 7 para apagar potencia....
+    SelectorCorrent(&relesExpander[2], {27,  4, 5}), // 6 y 7 para apagar potencia....
 };
 const int numSelectors = sizeof(selectors) / sizeof(selectors[0]);
 
 void initHw() {
   Wire.begin();
-  for (int i = 0; i < NRELES_EXPANDERS; i++) {
-    relesExpander[i].attach(Wire);
+
+  for (int i = 0; i < NRELES_EXPANDERS; i++) { // Tot apagat al arrencar. Per mes seguretat.
+    relesExpander[i].attach(Wire, i2cAdrs[i]);
     relesExpander[i].polarity(PCA95x5::Polarity::ORIGINAL_ALL);
     relesExpander[i].direction(PCA95x5::Direction::OUT_ALL);
     relesExpander[i].write(PCA95x5::Level::L_ALL);

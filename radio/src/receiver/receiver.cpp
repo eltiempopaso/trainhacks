@@ -9,6 +9,10 @@
 #include "common/protocol.h"
 #include "receiver.h"
 
+#ifndef NRF24_NETWORK_CHANNEL
+#define NRF24_NETWORK_CHANNEL 91
+#endif
+
 void initHw();
 void onRequestReceived(const PinRequest & aRequest, const bool initialized);
 
@@ -37,9 +41,7 @@ void setup()  {
   digitalWrite(ledPin, HIGH); // switch on led while initializing
 
   Serial.begin(9600);
-  while (!Serial) {
-    // some boards need this because of native USB capability
-  }
+  while (!Serial) { } // some boards need this because of native USB capability
 
   if (!radio.begin()) {
     Serial.println(F("ERROR GREU. El NRF24 no respon!"));
@@ -51,17 +53,17 @@ void setup()  {
 
   logMessage("network initialized. This node id %d.", THIS_NODE);
 
-  //initHw();  
-
-  printStatus(); // force sending initialization
+  initHw();  
 
   runner.addTask(taskPrintStatus);
   runner.addTask(taskReceiveMessages);
   runner.addTask(taskNrf24Network);
+  runner.addTask(taskStatusLED);
 
   taskPrintStatus.enable();
   taskReceiveMessages.enable();
   taskNrf24Network.enable();
+  taskStatusLED.enable();
 
   logMessage("Antena configurada OK");
 }
@@ -103,8 +105,6 @@ void receiveMessages() {
     for (int i = 0; i<nElements; i++) {
       const PinRequest & aRequest = ((PinRequest *)receivingBuffer)[i];
       onRequestReceived( aRequest, initialized );
-
-      logMessage("Configuro Pin %d. Estat %s.", aRequest.pin, aRequest.value==HIGH? "TANCAT": "OBERT");
     }
 
     initialized = true;

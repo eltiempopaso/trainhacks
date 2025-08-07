@@ -7,6 +7,9 @@
 #include "transmitter.h"
 #include <TaskScheduler.h>
 
+#ifndef NRF24_NETWORK_CHANNEL
+#define NRF24_NETWORK_CHANNEL 91
+#endif
 
 // USER DECLARED
 bool checkIfThereAreChanges();
@@ -26,14 +29,12 @@ GeneralStatus generalStatus = OK;
 Scheduler runner;
 
 // Task functions
-void printStatus();
 void sendPinRequests();
 void nrf24Network();
 void statusLed();
 
 // Define tasks
-Task taskPrintStatus(5000, TASK_FOREVER, &printStatus); 
-Task taskSendPinRequests   (200, TASK_FOREVER, &sendPinRequests); 
+Task taskSendPinRequests   (300, TASK_FOREVER, &sendPinRequests); 
 Task taskNrf24Network (100, TASK_FOREVER, &nrf24Network); 
 Task taskStatusLED (500, TASK_FOREVER, &statusLed); 
 Task taskReadPinInputs (30, TASK_FOREVER, &readInputs); 
@@ -47,9 +48,7 @@ void setup()  {
   digitalWrite(ledPin, HIGH); // switch on led while initializing
 			      //
   Serial.begin(9600);
-  while (!Serial) {
-    // some boards need this because of native USB capability
-  }
+  while (!Serial) { } // some boards need this because of native USB capability
 
   if (!radio.begin()) {
     logMessage("Radio hardware not responding!");
@@ -65,34 +64,21 @@ void setup()  {
 
   initHw();
 
-  runner.addTask(taskPrintStatus);
   runner.addTask(taskSendPinRequests);
   runner.addTask(taskNrf24Network);
   runner.addTask(taskStatusLED);
   runner.addTask(taskReadPinInputs);
 
-  taskPrintStatus.enable();
   taskSendPinRequests.enable();
   taskNrf24Network.enable();
   taskStatusLED.enable();
   taskReadPinInputs.enable();
 
-
-  logMessage("Inicialitzat!");
+  logMessage("Antena emisora arrencada!");
 }
 
 void loop() {
   runner.execute();
-}
-
-void printStatus() {
-  logMessage("CPU OK. Estat actual:");
-	
-  /*
-  for (int nButton = 0; nButton < numButtons; nButton++) {
-    logMessage(" * Boto local %d, rele remot %d, estat %s.", buttons[nButton].pin, buttons[nButton].remotePin, buttons[nButton].state==HIGH? "TANCAT":"OBERT");
-  }
-    */
 }
 
 bool receiveMessages() {
@@ -150,11 +136,11 @@ void statusLed() {
     LED_CURRENT = LED_CURRENT==LOW?HIGH:LOW;
     digitalWrite(ledPin, LED_CURRENT);    
 
-    logMessage("OK. TOOGLE");
+    logMessage("Alive. OK. TOOGLE");
   } else if (generalStatus == ERROR) {
     LED_CURRENT = LED_CURRENT==LOW?HIGH:LOW;
     digitalWrite(ledPin, LED_CURRENT);    
 
-    logMessage("ERROR. TOOGLE");
+    logMessage("Alive. CONN ERROR. TOOGLE");
   }
 }

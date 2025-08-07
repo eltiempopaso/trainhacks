@@ -50,21 +50,22 @@ Button buttons[] = {
 
                      {2, 6, 19, 0},
                      {2, 7, 20, 0},
+                     
 
                      {3, 0, 21, 0},
-                     {3, 1, 22, 0},
+                     {3, 1, 22, 0},                    
 
                      {3, 2, 23, 0},
                      {3, 3, 24, 0},
 
-                     {3, 4, 25, 0},
-                     {3, 5, 26, 0},
+
+                            
                       // INVERSOR GENERAL
-                     {4, 0, 27, 0},
+                     {4, 0, 25, 0},
                       // INVERSOR LOCAL
-                     {4, 1, 28, 0},
+                     {4, 1, 26, 0},
                       // SELECCIONADOR TRANSFORMADOR
-                     {4, 2, 29, 0},
+                     {4, 2, 27, 0},
                     };
 const int numButtons = sizeof(buttons) / sizeof(buttons[0]);
 
@@ -73,7 +74,6 @@ PinRequest requests[numButtons] = {0};
 const unsigned requestsSize = sizeof(requests);
 
 void readInputs() {
-  //Serial.println("llegint pins");
   for (int i = 0; i < NUM_EXPANDERS; i++) {
     for (int nreads =0; nreads < NREADS_EE_NOISE; nreads++) {
       expanderBytes[i][nreads] = pcf[i].digitalReadByte();
@@ -87,7 +87,7 @@ void readInputs() {
       if (tmp == 1) ones++;
       else zeros++;
     }
-    const int state = ones > zeros? 1: 0;
+    const int state = ones > zeros? 0: 1; // this device reads 0 when floating. input is inverted
 
     uint8_t & index = buttons[nButton].last;
     index = (index+1)%NSAMPLES_CHANGES_FILTER;
@@ -139,4 +139,8 @@ void initHw() {
 	  }
   }
 
+  // initialize buffer of reads
+  for (int i = 0; i < NSAMPLES_CHANGES_FILTER; i++) {
+    readInputs();
+  }
 }
