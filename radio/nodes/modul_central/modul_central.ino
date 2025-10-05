@@ -128,14 +128,22 @@ bool checkIfThereAreChanges() {
 
 void initHw() {
   Wire.begin();
-  for (int i = 0; i < NUM_EXPANDERS; i++) {
-	  if (!pcf[i].begin(i2cAddrs[i], &Wire)) {
-	    logMessage("ERROR. Couldn't find PCF8574 with address %d", i2cAddrs[i]);
-	    while (1);
-	  }
 
-	  for (uint8_t p=0; p<8; p++) {
-	    pcf[i].pinMode(p, INPUT_PULLUP);
+  bool ok = false;
+
+  while (!ok) {
+          ok = true;
+
+	  for (int i = 0; i < NUM_EXPANDERS && ok; i++) {
+		  if (!pcf[i].begin(i2cAddrs[i], &Wire)) {
+		    logMessage("ERROR. Couldn't find PCF8574 with address %d", i2cAddrs[i]);
+		    ok = false;
+		    delay(1000); // Let's wait a second and try again.
+		  }
+
+		  for (uint8_t p=0; p<8 && ok; p++) {
+		    pcf[i].pinMode(p, INPUT_PULLUP);
+		  }
 	  }
   }
 

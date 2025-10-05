@@ -48,11 +48,22 @@ const int numSelectors = sizeof(selectors) / sizeof(selectors[0]);
 void initHw() {
   Wire.begin();
 
-  for (int i = 0; i < NRELES_EXPANDERS; i++) { // Tot apagat al arrencar. Per mes seguretat.
-    relesExpander[i].attach(Wire, i2cAdrs[i]);
-    relesExpander[i].polarity(PCA95x5::Polarity::ORIGINAL_ALL);
-    relesExpander[i].direction(PCA95x5::Direction::OUT_ALL);
-    relesExpander[i].write(PCA95x5::Level::L_ALL);
+  bool ok = false;
+  while(!ok) {
+    ok = true;
+
+    for (int i = 0; i < NRELES_EXPANDERS && ok; i++) { // Tot apagat al arrencar. Per mes seguretat.
+      relesExpander[i].attach(Wire, i2cAdrs[i]);
+      relesExpander[i].polarity(PCA95x5::Polarity::ORIGINAL_ALL);
+      relesExpander[i].direction(PCA95x5::Direction::OUT_ALL);
+      relesExpander[i].write(PCA95x5::Level::L_ALL);
+
+      if (relesExpander[i].i2c_error() != 0) {
+        ok = false;
+        logMessage ("Expander %d error (adr: 0x%x). Let's retry in 1s", i, i2cAdrs[i]);
+        delay(1000); // chip not found. let's retry in 1s
+      }
+    }
   }
 }
 
